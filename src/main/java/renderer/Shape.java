@@ -26,7 +26,7 @@ public abstract class Shape {
         this.partial = partial;
     }
 
-    public abstract void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position);
+    public abstract void drawHighlight(GL2 gl, boolean highlighted, boolean debug, Vector3D position);
 
     public abstract List<Shape> extrude(double distance);
 
@@ -110,4 +110,6 @@ public abstract class Shape {
         point = Util.preMultiplyVector3dMatrix(point, MatrixUtils.inverse(rotation));
         return point;
     }
+
+    public abstract List<RenderableTriangle> getTriangles();
 }

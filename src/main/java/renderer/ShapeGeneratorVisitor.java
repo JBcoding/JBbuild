@@ -30,7 +30,11 @@ public class ShapeGeneratorVisitor implements ASTVisitor<List<Shape>> {
                 double red = (Double)node.getArguments().getArguments().get(0).getValue();
                 double green = (Double)node.getArguments().getArguments().get(1).getValue();
                 double blue = (Double)node.getArguments().getArguments().get(2).getValue();
-                currentShape.setColor(new Color((int)red, (int)green, (int)blue));
+                double alpha = 1.0;
+                if (node.getArguments().getArguments().size() >= 4) {
+                    alpha = (Double)node.getArguments().getArguments().get(3).getValue();
+                }
+                currentShape.setColor(new Color((float) red / 255, (float) green / 255, (float) blue / 255, (float) alpha));
                 break;
             case "translate":
                 double x = (Double)node.getArguments().getArguments().get(0).getValue();

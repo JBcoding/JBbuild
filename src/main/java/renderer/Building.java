@@ -97,7 +97,7 @@ public class Building {
         gl.glRotated(rotationAngle * 180 / Math.PI, 0.0f, 1.0f, 0.0f);
         gl.glTranslated(-rotationTranslationDiff.getX(), -rotationTranslationDiff.getY(), -rotationTranslationDiff.getZ());
         for (Shape s : shapes) {
-            s.draw(gl, highlighted, debug, Util.preMultiplyVector3dMatrix(position.subtract(translation), Util.createRotationMatrix(rotationAngle, Vector3D.PLUS_J)).add(rotationTranslationDiff));
+            s.drawHighlight(gl, highlighted, debug, Util.preMultiplyVector3dMatrix(position.subtract(translation), Util.createRotationMatrix(rotationAngle, Vector3D.PLUS_J)).add(rotationTranslationDiff));
         }
         if (highlighted) {
             drawRotationRing(gl);
@@ -279,5 +279,15 @@ public class Building {
 
     public void setAst(AST ast) {
         this.ast = ast;
+    }
+
+    public List<RenderableTriangle> getRenderableTriangles() {
+        List<RenderableTriangle> triangles = this.shapes.stream().map(Shape::getTriangles).collect(ArrayList::new, List::addAll, List::addAll);
+        for (RenderableTriangle triangle : triangles) {
+            triangle.translate(rotationTranslationDiff.scalarMultiply(-1));
+            triangle.multiplyEachPointWithMatrix(Util.createRotationMatrix(-rotationAngle, Vector3D.PLUS_J));
+            triangle.translate(translation);
+        }
+        return triangles;
     }
 }

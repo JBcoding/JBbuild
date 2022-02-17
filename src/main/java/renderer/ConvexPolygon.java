@@ -90,50 +90,14 @@ public class ConvexPolygon extends Shape {
         return null;
     }
 
-    private Vector3D getLightNormalVector(Vector3D position) {
-        Vector3D point = getRealPoint(points.get(0));
-        Vector3D normalVector = getNormalVector();
-
-        Vector3D ppn = point.add(normalVector);
-        Vector3D pnn = point.subtract(normalVector);
-
-        if (ppn.distance(position) < pnn.distance(position)) {
-            return normalVector;
-        } else {
-            return normalVector.scalarMultiply(-1);
-        }
-    }
 
     private double getAreaOfTriangle(Vector3D a, Vector3D b, Vector3D c) {
         return Math.abs((a.getX() * (b.getY() - c.getY()) + b.getX() * (c.getY() - a.getY()) + c.getX() * (a.getY() - b.getY())) / 2);
     }
 
-    public void drawTriangle(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal) {
-        gl.glColor3d(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
-
-        gl.glBegin(GL2.GL_TRIANGLES);
-
-        gl.glNormal3d(lightNormal.getX(), lightNormal.getY(), lightNormal.getZ());
-        gl.glVertex3d(p1.getX(), p1.getY(), p1.getZ());
-
-        gl.glNormal3d(lightNormal.getX(), lightNormal.getY(), lightNormal.getZ());
-        gl.glVertex3d(p2.getX(), p2.getY(), p2.getZ());
-
-        gl.glNormal3d(lightNormal.getX(), lightNormal.getY(), lightNormal.getZ());
-        gl.glVertex3d(p3.getX(), p3.getY(), p3.getZ());
-
-        gl.glEnd();
-
-        if (debug) {
-            renderer.Util.drawLine(gl, p1, p2);
-            renderer.Util.drawLine(gl, p2, p3);
-            renderer.Util.drawLine(gl, p3, p1);
-        }
-    }
-
-    public void drawAndSplitTriangles(GL2 gl, boolean debug, Vector3D p1, Vector3D p2, Vector3D p3, Vector3D lightNormal, double maxTriangleSize) {
+    public void collectTriangles(Vector3D p1, Vector3D p2, Vector3D p3, double maxTriangleSize, List<RenderableTriangle> triangles) {
         if (getAreaOfTriangle(p1, p2, p3) < maxTriangleSize) {
-            drawTriangle(gl, debug, getRealPoint(p1), getRealPoint(p2), getRealPoint(p3), lightNormal);
+            triangles.add(new RenderableTriangle(p1, p2, p3, color));
             return;
         }
 
@@ -150,33 +114,31 @@ public class ConvexPolygon extends Shape {
         }
 
         d = a.add(b).scalarMultiply(.5);
-        drawAndSplitTriangles(gl, debug, a, d, c, lightNormal, maxTriangleSize);
-        drawAndSplitTriangles(gl, debug, b, c, d, lightNormal, maxTriangleSize);
+        collectTriangles(a, d, c, maxTriangleSize, triangles);
+        collectTriangles(b, c, d, maxTriangleSize, triangles);
     }
 
-    public void drawTriangles(GL2 gl, boolean debug, List<Vector3D> points, Vector3D lightNormal, Vector3D cameraPosition) {
+    public List<RenderableTriangle> getTriangles() {
         Vector3D firstPoint = points.get(0);
         Vector3D lastPoint = points.get(1);
+        List<RenderableTriangle> triangles = new ArrayList<>();
         for (int i = 2; i < points.size(); i++) {
             Vector3D point = points.get(i);
 
             // check if the 3 points are on a line
             if ((firstPoint.subtract(lastPoint)).crossProduct(firstPoint.subtract(point)).distance(Vector3D.ZERO) > 0.0000001d) {
-                double distanceToCamera = renderer.Util.smallestDistanceBetweenPointAndTriangle(getRealPoint(firstPoint), getRealPoint(lastPoint), getRealPoint(point), cameraPosition);
-                drawAndSplitTriangles(gl, debug, firstPoint, lastPoint, point, lightNormal, Math.max(.05, distanceToCamera / 10));
+                triangles.add(new RenderableTriangle(getRealPoint(firstPoint), getRealPoint(lastPoint), getRealPoint(point), color));
+//                double distanceToCamera = renderer.Util.smallestDistanceBetweenPointAndTriangle(getRealPoint(firstPoint), getRealPoint(lastPoint), getRealPoint(point), cameraPosition);
+//                collectTriangles(firstPoint, lastPoint, point, maxTriangleArea, triangles);
             }
 
             lastPoint = point;
         }
+        return triangles;
     }
 
     @Override
-    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D cameraPosition) {
-        gl.glColor3d(color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f);
-
-        Vector3D lightNormal = getLightNormalVector(cameraPosition);
-        drawTriangles(gl, debug && highlighted, points, lightNormal, cameraPosition);
-
+    public void drawHighlight(GL2 gl, boolean highlighted, boolean debug, Vector3D cameraPosition) {
         if (highlighted || debug) {
             for (int i = 0; i < points.size(); i++) {
                 Vector3D point1 = points.get(i);
@@ -407,4 +369,5 @@ public class ConvexPolygon extends Shape {
 
         return new BoundingBox(min, max);
     }
+
 }

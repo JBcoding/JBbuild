@@ -14,6 +14,7 @@ import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import renderer.Building;
 import renderer.Road;
+import renderer.RenderableTriangle;
 import renderer.Util;
 
 import javax.imageio.ImageIO;
@@ -23,6 +24,7 @@ import java.awt.event.*;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RendererPanel extends JPanel implements GLEventListener {
     private static GLU glu;
@@ -506,8 +508,9 @@ public class RendererPanel extends JPanel implements GLEventListener {
 
         gl.glEnable(gl.GL_DEPTH_TEST);
 
-        gl.glEnable(gl.GL_BLEND);
+        gl.glDisable(gl.GL_BLEND); // Enabled later
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         gl.glLoadIdentity();
 
@@ -556,10 +559,22 @@ public class RendererPanel extends JPanel implements GLEventListener {
         gl.glVertex3d(position.getX() - RENDER_DISTANCE, -.1, position.getZ() + RENDER_DISTANCE);
         gl.glEnd();
 
-
+        List<RenderableTriangle> renderableTriangles = new ArrayList<>();
         for (Building building : buildings) {
-            building.draw(gl, building == selectedBuilding, debug, position);
+            if (building == selectedBuilding){
+                building.draw(gl, true, debug, position);
+            }
+            renderableTriangles.addAll(building.getRenderableTriangles());
         }
+
+        List<RenderableTriangle> opaqueTriangles = RenderableTriangle.divideIntoSmallTriangles(renderableTriangles.stream().filter(RenderableTriangle::isOpaque).collect(Collectors.toList()), position);
+        List<RenderableTriangle> transparentTriangles = renderableTriangles.stream().filter(RenderableTriangle::hasAlpha).collect(Collectors.toList());
+
+
+        for (RenderableTriangle triangle : opaqueTriangles) {
+            triangle.render(gl, debug, position);
+        }
+
         for (Road road : roads) {
             road.draw(gl, road == selectedRoad, debug);
         }
@@ -581,6 +596,16 @@ public class RendererPanel extends JPanel implements GLEventListener {
             gl.glEnd();
         }
         gl.glPopMatrix();
+
+
+        // Render transparent elements
+        gl.glEnable(gl.GL_BLEND);
+        gl.glDisable(GL2.GL_LIGHTING);
+        transparentTriangles.sort((o1, o2) -> o1.compareDistance(o2, position));
+        Collections.reverse(transparentTriangles);
+        for (RenderableTriangle transparentTriangle : transparentTriangles) {
+            transparentTriangle.render(gl, debug, position);
+        }
 
         if (debug && livePlaneIntersectionPoint != null) {
             gl.glColor3d(0, 1, 0);

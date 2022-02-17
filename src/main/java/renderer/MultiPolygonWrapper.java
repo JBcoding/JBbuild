@@ -1,9 +1,6 @@
 package renderer;
 
-import AST.Axis;
 import com.jogamp.opengl.GL2;
-import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
-import org.apache.commons.math3.geometry.euclidean.threed.RotationOrder;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.MatrixUtils;
@@ -11,7 +8,6 @@ import org.apache.commons.math3.linear.RealMatrix;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MultiPolygonWrapper extends Shape {
@@ -166,9 +162,9 @@ public class MultiPolygonWrapper extends Shape {
     }
 
     @Override
-    public void draw(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
+    public void drawHighlight(GL2 gl, boolean highlighted, boolean debug, Vector3D position) {
         for (ConvexPolygon polygon :  simplePolygons) {
-            polygon.draw(gl, highlighted, debug, position);
+            polygon.drawHighlight(gl, highlighted, debug, position);
         }
     }
 
@@ -281,6 +277,11 @@ public class MultiPolygonWrapper extends Shape {
         for (ConvexPolygon poly : simplePolygons) {
             poly.setColor(color);
         }
+    }
+
+    @Override
+    public List<RenderableTriangle> getTriangles() {
+        return simplePolygons.stream().map(ConvexPolygon::getTriangles).collect(ArrayList::new, List::addAll, List::addAll);
     }
 
     @Override
